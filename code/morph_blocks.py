@@ -24,7 +24,7 @@ from qgis.core import (
 from qgis import processing
 
 
-class ExampleProcessingAlgorithm(QgsProcessingAlgorithm):
+class MorphBlocks(QgsProcessingAlgorithm):
     """
     This is an example algorithm that takes a vector layer and
     creates a new identical one.
@@ -53,21 +53,21 @@ class ExampleProcessingAlgorithm(QgsProcessingAlgorithm):
         lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return "myscript"
+        return "morph_blocks"
 
     def displayName(self) -> str:
         """
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return "My Script"
+        return "Morph Blocks"
 
     def group(self) -> str:
         """
         Returns the name of the group this algorithm belongs to. This string
         should be localised.
         """
-        return "Example scripts"
+        return "Morphology"
 
     def groupId(self) -> str:
         """
@@ -77,7 +77,7 @@ class ExampleProcessingAlgorithm(QgsProcessingAlgorithm):
         contain lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return "examplescripts"
+        return "morphology"
 
     def shortHelpString(self) -> str:
         """
@@ -85,7 +85,7 @@ class ExampleProcessingAlgorithm(QgsProcessingAlgorithm):
         should provide a basic description about what the algorithm does and the
         parameters and outputs associated with it.
         """
-        return "Example algorithm short description"
+        return "Groups building footprints into building blocks."
 
     def initAlgorithm(self, config: Optional[dict[str, Any]] = None):
         """
@@ -98,7 +98,7 @@ class ExampleProcessingAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 self.INPUT,
-                "Input layer",
+                "Input building footprint layer",
                 [QgsProcessing.SourceType.TypeVectorAnyGeometry],
             )
         )
@@ -107,7 +107,7 @@ class ExampleProcessingAlgorithm(QgsProcessingAlgorithm):
         # usually takes the form of a newly created vector layer when the
         # algorithm is run in QGIS).
         self.addParameter(
-            QgsProcessingParameterFeatureSink(self.OUTPUT, "Output layer")
+            QgsProcessingParameterFeatureSink(self.OUTPUT, "Output block layer")
         )
 
     def processAlgorithm(
