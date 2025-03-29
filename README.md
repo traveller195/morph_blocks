@@ -14,3 +14,11 @@ Method:
 - dissolve origin building footprints by buffer id
 - add attribute with count of inner holes
 - add attribute with total area of inner holes
+
+
+dataset
+- **GIS Dataset Nürnberg War Damage Maps WWII** https://fd-repo.uni-bamberg.de/records/he14f-xh380
+
+tutorial
+- https://www.qgistutorials.com/de/docs/3/processing_python_plugin.html
+- 
