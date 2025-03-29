@@ -22,6 +22,7 @@ from qgis.core import (
     QgsProcessingParameterFeatureSource,
     QgsProcessingParameterNumber,
     QgsProcessingParameterExtent,
+    QgsCoordinateReferenceSystem,
 )
 from qgis import processing
 
@@ -162,9 +163,28 @@ class MorphBlocks(QgsProcessingAlgorithm):
                 self.invalidSourceError(parameters, self.INPUT)
             )
 
-        (sink, dest_id) = self.parameterAsSink(
+        # sink for each output
+        (dissolved_4, dest_id) = self.parameterAsSink(
             parameters,
             self.OUTPUT,
+            context,
+            source.fields(),
+            source.wkbType(),
+            source.sourceCrs(),
+        )
+        
+        (buffer_2, buffer_id) = self.parameterAsSink(
+            parameters,
+            self.OUTPUT_BUFFER,
+            context,
+            source.fields(),
+            source.wkbType(),
+            source.sourceCrs(),
+        )
+        
+        (centroids, centroids_id) = self.parameterAsSink(
+            parameters,
+            self.OUTPUT_CENTROIDS,
             context,
             source.fields(),
             source.wkbType(),
@@ -178,7 +198,8 @@ class MorphBlocks(QgsProcessingAlgorithm):
         # encountered a fatal error. The exception text can be any string, but in this
         # case we use the pre-built invalidSinkError method to return a standard
         # helper text for when a sink cannot be evaluated
-        if sink is None:
+        
+        if dissolved_4 is None:
             raise QgsProcessingException(self.invalidSinkError(parameters, self.OUTPUT))
             
         buffer_value = self.parameterAsInt(parameters, self.BUFFER_VALUE, context)
@@ -201,7 +222,7 @@ class MorphBlocks(QgsProcessingAlgorithm):
             'METHOD':1,
             'OUTPUT':'TEMPORARY_OUTPUT'
         })["OUTPUT"]
-        # because of dict output --> add ["OUTPUT"]
+        # because output of tool is a python dict, select key 'output' --> add ["OUTPUT"]
         
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
@@ -221,6 +242,7 @@ class MorphBlocks(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
             return
+            
         # -------------------------------   
         # Transform CRS to metric Web Mercator (EPSG: 3857) - only if required
         # -------------------------------
@@ -237,6 +259,7 @@ class MorphBlocks(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
             return
+            
         # -------------------------------   
         # Dissolve all building polygon footprints
         # -------------------------------
@@ -252,6 +275,7 @@ class MorphBlocks(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
             return
+            
         # -------------------------------   
         # Buffer with given buffer value NEGATIVE (inside)
         # -------------------------------
@@ -272,6 +296,7 @@ class MorphBlocks(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
             return
+            
         # -------------------------------   
         # Buffer with given buffer value POSITIVE (outside)
         # -------------------------------
@@ -292,6 +317,7 @@ class MorphBlocks(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
             return
+            
         # -------------------------------   
         # Create centroid (on surface) for each origin building footprint - including building id
         # -------------------------------
@@ -306,18 +332,11 @@ class MorphBlocks(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
             return
+            
         # -------------------------------   
         # Join buffer id to centroid 
         # -------------------------------
         feedback.pushInfo("join buffer id to centroid")
-        
-        if feedback.isCanceled():
-            feedback.pushInfo("Script was canceled.")
-            return
-        # -------------------------------   
-        # Join buffer id to origin building footprint - using centroid
-        # -------------------------------
-        feedback.pushInfo("join buffer id to origin building footprint")
         
         centroid_with_buffer_id = processing.run("native:joinattributesbylocation", {
             'INPUT':centroids,
@@ -329,17 +348,39 @@ class MorphBlocks(QgsProcessingAlgorithm):
             'PREFIX':'buffer_',
             'OUTPUT':'TEMPORARY_OUTPUT'
         })['OUTPUT']
+        
+        if feedback.isCanceled():
+            feedback.pushInfo("Script was canceled.")
+            return
+            
+        # -------------------------------   
+        # Join buffer id to origin building footprint - using centroid
+        # -------------------------------
+        feedback.pushInfo("join buffer id to origin building footprint")
+        
+        transformed_with_buffer_id = processing.run("native:joinattributestable", {
+            'INPUT':transformed,
+            'FIELD':'fid',
+            'INPUT_2':centroid_with_buffer_id,
+            'FIELD_2':'fid',
+            'FIELDS_TO_COPY':['buffer_fid'],
+            'METHOD':1,
+            'DISCARD_NONMATCHING':False,
+            'PREFIX':'',
+            'OUTPUT':'TEMPORARY_OUTPUT'
+        })['OUTPUT']
 
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
             return
+            
         # -------------------------------   
         # Dissolve origin building footprint by buffer id
         # -------------------------------
         feedback.pushInfo("dissolve origin building footprint by buffer id")
         
         dissolved_2 = processing.run("native:dissolve", {
-            'INPUT':centroid_with_buffer_id,
+            'INPUT':transformed_with_buffer_id,
             'FIELD':['buffer_fid'],
             'SEPARATE_DISJOINT':False,
             'OUTPUT':'TEMPORARY_OUTPUT'
@@ -348,6 +389,7 @@ class MorphBlocks(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
             return
+            
         # -------------------------------   
         # Add column "holes_count" with number of inner holes
         # -------------------------------
@@ -367,12 +409,13 @@ class MorphBlocks(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
             return
+            
         # -------------------------------   
         # Add column "holes_total_area" with total area of inner holes
         # -------------------------------
         feedback.pushInfo("add column holes_total_area")
-        dissolved_3 = processing.run("native:addfieldtoattributestable", {
-            'INPUT':dissolved_2, 
+        dissolved_4 = processing.run("native:addfieldtoattributestable", {
+            'INPUT':dissolved_3, 
             'FIELD_NAME':'holes_count',
             'FIELD_TYPE':0,
             'FIELD_LENGTH':10,
@@ -406,22 +449,22 @@ class MorphBlocks(QgsProcessingAlgorithm):
         # to processing.run to ensure that all temporary layer outputs are available
         # to the executed algorithm, and that the executed algorithm can send feedback
         # reports to the user (and correctly handle cancellation and progress reports!)
-        if False:
-            buffered_layer = processing.run(
-                "native:buffer",
-                {
-                    "INPUT": dest_id,
-                    "DISTANCE": 1.5,
-                    "SEGMENTS": 5,
-                    "END_CAP_STYLE": 0,
-                    "JOIN_STYLE": 0,
-                    "MITER_LIMIT": 2,
-                    "DISSOLVE": False,
-                    "OUTPUT": "memory:",
-                },
-                context=context,
-                feedback=feedback,
-            )["OUTPUT"]
+        #if False:
+        #    buffered_layer = processing.run(
+        #        "native:buffer",
+        #        {
+        #            "INPUT": dest_id,
+        #            "DISTANCE": 1.5,
+        #            "SEGMENTS": 5,
+        #            "END_CAP_STYLE": 0,
+        #            "JOIN_STYLE": 0,
+        #            "MITER_LIMIT": 2,
+        #            "DISSOLVE": False,
+        #            "OUTPUT": "memory:",
+        #        },
+        #        context=context,
+        #        feedback=feedback,
+        #    )["OUTPUT"]
 
         # Return the results of the algorithm. In this case our only result is
         # the feature sink which contains the processed features, but some
@@ -429,7 +472,9 @@ class MorphBlocks(QgsProcessingAlgorithm):
         # statistics, etc. These should all be included in the returned
         # dictionary, with keys matching the feature corresponding parameter
         # or output names.
-        return {self.OUTPUT: dest_id}
+        return {self.OUTPUT: dest_id, 
+                self.OUTPUT_BUFFER: buffer_id, 
+                self.OUTPUT_CENTROIDS: centroids_id}
 
     def createInstance(self):
         return self.__class__()
