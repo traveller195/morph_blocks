@@ -20,6 +20,8 @@ from qgis.core import (
     QgsProcessingFeedback,
     QgsProcessingParameterFeatureSink,
     QgsProcessingParameterFeatureSource,
+    QgsProcessingParameterNumber,
+    QgsProcessingParameterExtent,
 )
 from qgis import processing
 
@@ -44,6 +46,8 @@ class MorphBlocks(QgsProcessingAlgorithm):
 
     INPUT = "INPUT"
     OUTPUT = "OUTPUT"
+    EXTENT = "EXTENT"
+    BUFFER_VALUE = "BUFFER_VALUE"
 
     def name(self) -> str:
         """
@@ -93,8 +97,8 @@ class MorphBlocks(QgsProcessingAlgorithm):
         with some other properties.
         """
 
-        # We add the input vector features source. It can have any kind of
-        # geometry.
+        # We add the input vector features source. It should be a polygon 
+        # dataset.
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 self.INPUT,
@@ -103,6 +107,21 @@ class MorphBlocks(QgsProcessingAlgorithm):
             )
         )
 
+        # Add a spatial extent for the processing
+        self.addParameter(
+            QgsProcessingParameterExtent(
+                self.EXTENT,
+                "Spatial extent for the processing",
+            )
+        )
+        
+        # Add a spatial extent for the processing
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.BUFFER_VALUE,
+                "Buffer value in meters"
+            )
+        )
         # We add a feature sink in which to store our processed features (this
         # usually takes the form of a newly created vector layer when the
         # algorithm is run in QGIS).
