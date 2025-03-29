@@ -48,6 +48,8 @@ class MorphBlocks(QgsProcessingAlgorithm):
     OUTPUT = "OUTPUT"
     EXTENT = "EXTENT"
     BUFFER_VALUE = "BUFFER_VALUE"
+    OUTPUT_CENTROIDS = "OUTPUT_CENTROIDS"
+    OUTPUT_BUFFER = "OUTPUT_BUFFER"
 
     def name(self) -> str:
         """
@@ -129,6 +131,13 @@ class MorphBlocks(QgsProcessingAlgorithm):
             QgsProcessingParameterFeatureSink(self.OUTPUT, "Output block layer")
         )
 
+        self.addParameter(
+            QgsProcessingParameterFeatureSink(self.OUTPUT_CENTROIDS, "Output centroid layer", optional=True)
+        )
+        
+        self.addParameter(
+            QgsProcessingParameterFeatureSink(self.OUTPUT_BUFFER, "Output buffer layer", optional=True)
+        )
     def processAlgorithm(
         self,
         parameters: dict[str, Any],
@@ -142,7 +151,7 @@ class MorphBlocks(QgsProcessingAlgorithm):
         # Retrieve the feature source and sink. The 'dest_id' variable is used
         # to uniquely identify the feature sink, and must be included in the
         # dictionary returned by the processAlgorithm function.
-        source = self.parameterAsSource(parameters, self.INPUT, context)
+        source = self.parameterAsVectorLayer(parameters, self.INPUT, context)
 
         # If source was not found, throw an exception to indicate that the algorithm
         # encountered a fatal error. The exception text can be any string, but in this
@@ -172,88 +181,225 @@ class MorphBlocks(QgsProcessingAlgorithm):
         if sink is None:
             raise QgsProcessingException(self.invalidSinkError(parameters, self.OUTPUT))
             
+        buffer_value = self.parameterAsInt(parameters, self.BUFFER_VALUE, context)
+        spatial_extent = self.parameterAsExtent(parameters, self.EXTENT, context)
+            
         # -------------------------------   
         # P R O C E S S I N G - S T E P S
-        # -------------------------------
-
-
+        # ------------------------------- 
+        
+        if feedback.isCanceled():
+            feedback.pushInfo("Script was canceled.")
+            return
+            
         # -------------------------------   
         # Execute "geometry repair" on input building dataset
         # -------------------------------
+        feedback.pushInfo("geometry repair")
+        repaired = processing.run("native:fixgeometries", {
+            'INPUT': source,
+            'METHOD':1,
+            'OUTPUT':'TEMPORARY_OUTPUT'
+        })["OUTPUT"]
+        # because of dict output --> add ["OUTPUT"]
         
-        
-        
+        if feedback.isCanceled():
+            feedback.pushInfo("Script was canceled.")
+            return
+            
         # -------------------------------   
         # Clip input building layer to given spatial extent
         # -------------------------------
+        feedback.pushInfo("clip building footprints")
+        clipped = processing.run("native:extractbyextent", {
+            'INPUT':repaired,
+            'EXTENT':spatial_extent,
+            'CLIP':False,
+            'OUTPUT':'TEMPORARY_OUTPUT'
+        })['OUTPUT']
         
-        
+        if feedback.isCanceled():
+            feedback.pushInfo("Script was canceled.")
+            return
         # -------------------------------   
         # Transform CRS to metric Web Mercator (EPSG: 3857) - only if required
         # -------------------------------
+        feedback.pushInfo("project CRS")
         
+        transformed = processing.run("native:reprojectlayer", {
+            'INPUT':clipped,
+            'TARGET_CRS':QgsCoordinateReferenceSystem('EPSG:3857'),
+            'CONVERT_CURVED_GEOMETRIES':False,
+            'OPERATION':'+proj=noop',
+            'OUTPUT':'TEMPORARY_OUTPUT'
+        })['OUTPUT']
         
+        if feedback.isCanceled():
+            feedback.pushInfo("Script was canceled.")
+            return
         # -------------------------------   
         # Dissolve all building polygon footprints
         # -------------------------------
+        feedback.pushInfo("dissolve all building footprints")
+        
+        dissolved_1 = processing.run("native:dissolve", {
+            'INPUT':transformed,
+            'FIELD':[],
+            'SEPARATE_DISJOINT':False,
+            'OUTPUT':'TEMPORARY_OUTPUT'
+        })['OUTPUT']
 
-
+        if feedback.isCanceled():
+            feedback.pushInfo("Script was canceled.")
+            return
         # -------------------------------   
         # Buffer with given buffer value NEGATIVE (inside)
         # -------------------------------
-        
-        
+        feedback.pushInfo("starting buffer")
+        buffer_1 = processing.run("native:buffer", {
+            'INPUT':dissolved_1,
+            'DISTANCE':-buffer_value,
+            'SEGMENTS':5,
+            'END_CAP_STYLE':0,
+            'JOIN_STYLE':0,
+            'MITER_LIMIT':2,
+            'DISSOLVE':False,
+            'SEPARATE_DISJOINT':False,
+            'OUTPUT':'TEMPORARY_OUTPUT'},
+            feedback=feedback
+            )['OUTPUT']
+
+        if feedback.isCanceled():
+            feedback.pushInfo("Script was canceled.")
+            return
         # -------------------------------   
         # Buffer with given buffer value POSITIVE (outside)
         # -------------------------------
+        feedback.pushInfo("starting buffer")
+        buffer_2 = processing.run("native:buffer", {
+            'INPUT':buffer_1,
+            'DISTANCE':buffer_value,
+            'SEGMENTS':5,
+            'END_CAP_STYLE':0,
+            'JOIN_STYLE':0,
+            'MITER_LIMIT':2,
+            'DISSOLVE':False,
+            'SEPARATE_DISJOINT':False,
+            'OUTPUT':'TEMPORARY_OUTPUT'},
+            feedback=feedback
+            )['OUTPUT']
         
-        
+        if feedback.isCanceled():
+            feedback.pushInfo("Script was canceled.")
+            return
         # -------------------------------   
         # Create centroid (on surface) for each origin building footprint - including building id
         # -------------------------------
+        feedback.pushInfo("create centroid")
         
-        
+        centroids = processing.run("native:pointonsurface", {
+            'INPUT':transformed,
+            'ALL_PARTS':False,
+            'OUTPUT':'TEMPORARY_OUTPUT'
+        })['OUTPUT']
+
+        if feedback.isCanceled():
+            feedback.pushInfo("Script was canceled.")
+            return
         # -------------------------------   
         # Join buffer id to centroid 
         # -------------------------------
+        feedback.pushInfo("join buffer id to centroid")
         
-        
+        if feedback.isCanceled():
+            feedback.pushInfo("Script was canceled.")
+            return
         # -------------------------------   
         # Join buffer id to origin building footprint - using centroid
         # -------------------------------
+        feedback.pushInfo("join buffer id to origin building footprint")
         
-        
+        centroid_with_buffer_id = processing.run("native:joinattributesbylocation", {
+            'INPUT':centroids,
+            'PREDICATE':[0,1,2,3,4,5,6],
+            'JOIN':buffer_2,
+            'JOIN_FIELDS':['fid'],
+            'METHOD':0,
+            'DISCARD_NONMATCHING':False,
+            'PREFIX':'buffer_',
+            'OUTPUT':'TEMPORARY_OUTPUT'
+        })['OUTPUT']
+
+        if feedback.isCanceled():
+            feedback.pushInfo("Script was canceled.")
+            return
         # -------------------------------   
         # Dissolve origin building footprint by buffer id
         # -------------------------------
+        feedback.pushInfo("dissolve origin building footprint by buffer id")
         
+        dissolved_2 = processing.run("native:dissolve", {
+            'INPUT':centroid_with_buffer_id,
+            'FIELD':['buffer_fid'],
+            'SEPARATE_DISJOINT':False,
+            'OUTPUT':'TEMPORARY_OUTPUT'
+        })['OUTPUT']
         
+        if feedback.isCanceled():
+            feedback.pushInfo("Script was canceled.")
+            return
         # -------------------------------   
         # Add column "holes_count" with number of inner holes
         # -------------------------------
+        feedback.pushInfo("add column holes_count")
         
+        dissolved_3 = processing.run("native:addfieldtoattributestable", {
+            'INPUT':dissolved_2, 
+            'FIELD_NAME':'holes_count',
+            'FIELD_TYPE':0,
+            'FIELD_LENGTH':10,
+            'FIELD_PRECISION':0,
+            'FIELD_ALIAS':'',
+            'FIELD_COMMENT':'',
+            'OUTPUT':'TEMPORARY_OUTPUT'
+        })['OUTPUT']
         
+        if feedback.isCanceled():
+            feedback.pushInfo("Script was canceled.")
+            return
         # -------------------------------   
         # Add column "holes_total_area" with total area of inner holes
         # -------------------------------
+        feedback.pushInfo("add column holes_total_area")
+        dissolved_3 = processing.run("native:addfieldtoattributestable", {
+            'INPUT':dissolved_2, 
+            'FIELD_NAME':'holes_count',
+            'FIELD_TYPE':0,
+            'FIELD_LENGTH':10,
+            'FIELD_PRECISION':0,
+            'FIELD_ALIAS':'',
+            'FIELD_COMMENT':'',
+            'OUTPUT':'TEMPORARY_OUTPUT'
+        })['OUTPUT']
         
-        
-        
+        if feedback.isCanceled():
+            feedback.pushInfo("Script was canceled.")
+            return
         # Compute the number of steps to display within the progress bar and
         # get features from source
-        total = 100.0 / source.featureCount() if source.featureCount() else 0
-        features = source.getFeatures()
+        #total = 100.0 / source.featureCount() if source.featureCount() else 0
+        #features = source.getFeatures()
 
-        for current, feature in enumerate(features):
+        #for current, feature in enumerate(features):
             # Stop the algorithm if cancel button has been clicked
-            if feedback.isCanceled():
-                break
+        #    if feedback.isCanceled():
+        #        break
 
             # Add a feature in the sink
-            sink.addFeature(feature, QgsFeatureSink.Flag.FastInsert)
+        #    sink.addFeature(feature, QgsFeatureSink.Flag.FastInsert)
 
             # Update the progress bar
-            feedback.setProgress(int(current * total))
+        #    feedback.setProgress(int(current * total))
 
         # To run another Processing algorithm as part of this algorithm, you can use
         # processing.run(...). Make sure you pass the current context and feedback
