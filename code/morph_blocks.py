@@ -171,7 +171,68 @@ class MorphBlocks(QgsProcessingAlgorithm):
         # helper text for when a sink cannot be evaluated
         if sink is None:
             raise QgsProcessingException(self.invalidSinkError(parameters, self.OUTPUT))
+            
+        # -------------------------------   
+        # P R O C E S S I N G - S T E P S
+        # -------------------------------
+        
+        
+        # -------------------------------   
+        # Clip input building layer to given spatial extent
+        # -------------------------------
+        
+        
+        # -------------------------------   
+        # Transform CRS to metric Web Mercator (EPSG: 3857) - only if required
+        # -------------------------------
+        
+        
+        # -------------------------------   
+        # Dissolve all building polygon footprints
+        # -------------------------------
 
+
+        # -------------------------------   
+        # Buffer with given buffer value NEGATIVE (inside)
+        # -------------------------------
+        
+        
+        # -------------------------------   
+        # Buffer with given buffer value POSITIVE (outside)
+        # -------------------------------
+        
+        
+        # -------------------------------   
+        # Create centroid (on surface) for each origin building footprint - including building id
+        # -------------------------------
+        
+        
+        # -------------------------------   
+        # Join buffer id to centroid 
+        # -------------------------------
+        
+        
+        # -------------------------------   
+        # Join buffer id to origin building footprint - using centroid
+        # -------------------------------
+        
+        
+        # -------------------------------   
+        # Dissolve origin building footprint by buffer id
+        # -------------------------------
+        
+        
+        # -------------------------------   
+        # Add column "holes_count" with number of inner holes
+        # -------------------------------
+        
+        
+        # -------------------------------   
+        # Add column "holes_total_area" with total area of inner holes
+        # -------------------------------
+        
+        
+        
         # Compute the number of steps to display within the progress bar and
         # get features from source
         total = 100.0 / source.featureCount() if source.featureCount() else 0
