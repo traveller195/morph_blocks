@@ -99,7 +99,7 @@ class MorphBlocks(QgsProcessingAlgorithm):
             QgsProcessingParameterFeatureSource(
                 self.INPUT,
                 "Input building footprint layer",
-                [QgsProcessing.SourceType.TypeVectorAnyGeometry],
+                [QgsProcessing.SourceType.TypeVectorPolygon],
             )
         )
 
