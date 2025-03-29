@@ -175,6 +175,12 @@ class MorphBlocks(QgsProcessingAlgorithm):
         # -------------------------------   
         # P R O C E S S I N G - S T E P S
         # -------------------------------
+
+
+        # -------------------------------   
+        # Execute "geometry repair" on input building dataset
+        # -------------------------------
+        
         
         
         # -------------------------------   
