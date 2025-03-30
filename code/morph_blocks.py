@@ -221,7 +221,10 @@ class MorphBlocks(QgsProcessingAlgorithm):
             'INPUT': source,
             'METHOD':1,
             'OUTPUT':'TEMPORARY_OUTPUT'
-        })["OUTPUT"]
+        },
+        context=context,
+        feedback=feedback,
+        )["OUTPUT"]
         # because output of tool is a python dict, select key 'output' --> add ["OUTPUT"]
         
         if feedback.isCanceled():
@@ -237,7 +240,10 @@ class MorphBlocks(QgsProcessingAlgorithm):
             'EXTENT':spatial_extent,
             'CLIP':False,
             'OUTPUT':'TEMPORARY_OUTPUT'
-        })['OUTPUT']
+        },
+        context=context,
+        feedback=feedback,
+        )["OUTPUT"]
         
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
@@ -254,7 +260,10 @@ class MorphBlocks(QgsProcessingAlgorithm):
             'CONVERT_CURVED_GEOMETRIES':False,
             'OPERATION':'+proj=noop',
             'OUTPUT':'TEMPORARY_OUTPUT'
-        })['OUTPUT']
+        },
+        context=context,
+        feedback=feedback,
+        )["OUTPUT"]
         
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
@@ -270,7 +279,10 @@ class MorphBlocks(QgsProcessingAlgorithm):
             'FIELD':[],
             'SEPARATE_DISJOINT':False,
             'OUTPUT':'TEMPORARY_OUTPUT'
-        })['OUTPUT']
+        },
+        context=context,
+        feedback=feedback,
+        )["OUTPUT"]
 
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
@@ -289,9 +301,11 @@ class MorphBlocks(QgsProcessingAlgorithm):
             'MITER_LIMIT':2,
             'DISSOLVE':False,
             'SEPARATE_DISJOINT':False,
-            'OUTPUT':'TEMPORARY_OUTPUT'},
-            feedback=feedback
-            )['OUTPUT']
+            'OUTPUT':'TEMPORARY_OUTPUT'
+        },
+        context=context,
+        feedback=feedback,
+        )["OUTPUT"]
 
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
@@ -310,9 +324,11 @@ class MorphBlocks(QgsProcessingAlgorithm):
             'MITER_LIMIT':2,
             'DISSOLVE':False,
             'SEPARATE_DISJOINT':False,
-            'OUTPUT':'TEMPORARY_OUTPUT'},
-            feedback=feedback
-            )['OUTPUT']
+            'OUTPUT':'TEMPORARY_OUTPUT'
+        },
+        context=context,
+        feedback=feedback,
+        )["OUTPUT"]
         
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
@@ -327,7 +343,10 @@ class MorphBlocks(QgsProcessingAlgorithm):
             'INPUT':transformed,
             'ALL_PARTS':False,
             'OUTPUT':'TEMPORARY_OUTPUT'
-        })['OUTPUT']
+        },
+        context=context,
+        feedback=feedback,
+        )["OUTPUT"]
 
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
@@ -347,7 +366,10 @@ class MorphBlocks(QgsProcessingAlgorithm):
             'DISCARD_NONMATCHING':False,
             'PREFIX':'buffer_',
             'OUTPUT':'TEMPORARY_OUTPUT'
-        })['OUTPUT']
+        },
+        context=context,
+        feedback=feedback,
+        )["OUTPUT"]
         
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
@@ -368,7 +390,10 @@ class MorphBlocks(QgsProcessingAlgorithm):
             'DISCARD_NONMATCHING':False,
             'PREFIX':'',
             'OUTPUT':'TEMPORARY_OUTPUT'
-        })['OUTPUT']
+        },
+        context=context,
+        feedback=feedback,
+        )["OUTPUT"]
 
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
@@ -384,7 +409,10 @@ class MorphBlocks(QgsProcessingAlgorithm):
             'FIELD':['buffer_fid'],
             'SEPARATE_DISJOINT':False,
             'OUTPUT':'TEMPORARY_OUTPUT'
-        })['OUTPUT']
+        },
+        context=context,
+        feedback=feedback,
+        )["OUTPUT"]
         
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
@@ -404,7 +432,10 @@ class MorphBlocks(QgsProcessingAlgorithm):
             'FIELD_ALIAS':'',
             'FIELD_COMMENT':'',
             'OUTPUT':'TEMPORARY_OUTPUT'
-        })['OUTPUT']
+        },
+        context=context,
+        feedback=feedback,
+        )["OUTPUT"]
         
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
@@ -423,7 +454,10 @@ class MorphBlocks(QgsProcessingAlgorithm):
             'FIELD_ALIAS':'',
             'FIELD_COMMENT':'',
             'OUTPUT':'TEMPORARY_OUTPUT'
-        })['OUTPUT']
+        },
+        context=context,
+        feedback=feedback,
+        )["OUTPUT"]
         
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
