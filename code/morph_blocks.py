@@ -164,7 +164,7 @@ class MorphBlocks(QgsProcessingAlgorithm):
             )
 
         # sink for each output
-        (dissolved_4, dest_id) = self.parameterAsSink(
+        (sink, dest_id) = self.parameterAsSink(
             parameters,
             self.OUTPUT,
             context,
@@ -173,7 +173,7 @@ class MorphBlocks(QgsProcessingAlgorithm):
             source.sourceCrs(),
         )
         
-        (buffer_2, buffer_id) = self.parameterAsSink(
+        (sink_buffer, buffer_id) = self.parameterAsSink(
             parameters,
             self.OUTPUT_BUFFER,
             context,
@@ -182,7 +182,7 @@ class MorphBlocks(QgsProcessingAlgorithm):
             source.sourceCrs(),
         )
         
-        (centroids, centroids_id) = self.parameterAsSink(
+        (sink_centroids, centroids_id) = self.parameterAsSink(
             parameters,
             self.OUTPUT_CENTROIDS,
             context,
@@ -193,13 +193,16 @@ class MorphBlocks(QgsProcessingAlgorithm):
 
         # Send some information to the user
         feedback.pushInfo(f"CRS is {source.sourceCrs().authid()}")
+        
+        # Print number of input features
+        feedback.pushInfo(f"Number of features: {len(source)}")
 
         # If sink was not created, throw an exception to indicate that the algorithm
         # encountered a fatal error. The exception text can be any string, but in this
         # case we use the pre-built invalidSinkError method to return a standard
         # helper text for when a sink cannot be evaluated
         
-        if dissolved_4 is None:
+        if sink is None:
             raise QgsProcessingException(self.invalidSinkError(parameters, self.OUTPUT))
             
         buffer_value = self.parameterAsInt(parameters, self.BUFFER_VALUE, context)
@@ -216,6 +219,7 @@ class MorphBlocks(QgsProcessingAlgorithm):
         # -------------------------------   
         # Execute "geometry repair" on input building dataset
         # -------------------------------
+        feedback.pushInfo("-----------------------------------------")
         feedback.pushInfo("geometry repair")
         repaired = processing.run("native:fixgeometries", {
             'INPUT': source,
@@ -227,6 +231,9 @@ class MorphBlocks(QgsProcessingAlgorithm):
         )["OUTPUT"]
         # because output of tool is a python dict, select key 'output' --> add ["OUTPUT"]
         
+        # Print number of input features
+        feedback.pushInfo(f"Number of features: {len(repaired)}")
+        
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
             return
@@ -234,6 +241,7 @@ class MorphBlocks(QgsProcessingAlgorithm):
         # -------------------------------   
         # Clip input building layer to given spatial extent
         # -------------------------------
+        feedback.pushInfo("-----------------------------------------")
         feedback.pushInfo("clip building footprints")
         clipped = processing.run("native:extractbyextent", {
             'INPUT':repaired,
@@ -245,6 +253,9 @@ class MorphBlocks(QgsProcessingAlgorithm):
         feedback=feedback,
         )["OUTPUT"]
         
+        # Print number of input features
+        feedback.pushInfo(f"Number of features: {len(clipped)}")
+        
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
             return
@@ -252,6 +263,7 @@ class MorphBlocks(QgsProcessingAlgorithm):
         # -------------------------------   
         # Transform CRS to metric Web Mercator (EPSG: 3857) - only if required
         # -------------------------------
+        feedback.pushInfo("-----------------------------------------")
         feedback.pushInfo("project CRS")
         
         transformed = processing.run("native:reprojectlayer", {
@@ -265,6 +277,9 @@ class MorphBlocks(QgsProcessingAlgorithm):
         feedback=feedback,
         )["OUTPUT"]
         
+        # Print number of input features
+        feedback.pushInfo(f"Number of features: {len(transformed)}")
+        
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
             return
@@ -272,6 +287,7 @@ class MorphBlocks(QgsProcessingAlgorithm):
         # -------------------------------   
         # Dissolve all building polygon footprints
         # -------------------------------
+        feedback.pushInfo("-----------------------------------------")
         feedback.pushInfo("dissolve all building footprints")
         
         dissolved_1 = processing.run("native:dissolve", {
@@ -283,6 +299,9 @@ class MorphBlocks(QgsProcessingAlgorithm):
         context=context,
         feedback=feedback,
         )["OUTPUT"]
+        
+        # Print number of input features
+        feedback.pushInfo(f"Number of features: {len(dissolved_1)}")
 
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
@@ -291,6 +310,7 @@ class MorphBlocks(QgsProcessingAlgorithm):
         # -------------------------------   
         # Buffer with given buffer value NEGATIVE (inside)
         # -------------------------------
+        feedback.pushInfo("-----------------------------------------")
         feedback.pushInfo("starting buffer")
         buffer_1 = processing.run("native:buffer", {
             'INPUT':dissolved_1,
@@ -306,6 +326,9 @@ class MorphBlocks(QgsProcessingAlgorithm):
         context=context,
         feedback=feedback,
         )["OUTPUT"]
+        
+        # Print number of input features
+        feedback.pushInfo(f"Number of features: {len(buffer_1)}")
 
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
@@ -314,6 +337,7 @@ class MorphBlocks(QgsProcessingAlgorithm):
         # -------------------------------   
         # Buffer with given buffer value POSITIVE (outside)
         # -------------------------------
+        feedback.pushInfo("-----------------------------------------")
         feedback.pushInfo("starting buffer")
         buffer_2 = processing.run("native:buffer", {
             'INPUT':buffer_1,
@@ -330,6 +354,9 @@ class MorphBlocks(QgsProcessingAlgorithm):
         feedback=feedback,
         )["OUTPUT"]
         
+        # Print number of input features
+        feedback.pushInfo(f"Number of features: {len(buffer_2)}")
+        
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
             return
@@ -337,6 +364,7 @@ class MorphBlocks(QgsProcessingAlgorithm):
         # -------------------------------   
         # Create centroid (on surface) for each origin building footprint - including building id
         # -------------------------------
+        feedback.pushInfo("-----------------------------------------")
         feedback.pushInfo("create centroid")
         
         centroids = processing.run("native:pointonsurface", {
@@ -347,6 +375,9 @@ class MorphBlocks(QgsProcessingAlgorithm):
         context=context,
         feedback=feedback,
         )["OUTPUT"]
+        
+        # Print number of input features
+        feedback.pushInfo(f"Number of features: {len(centroids)}")
 
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
@@ -355,6 +386,7 @@ class MorphBlocks(QgsProcessingAlgorithm):
         # -------------------------------   
         # Join buffer id to centroid 
         # -------------------------------
+        feedback.pushInfo("-----------------------------------------")
         feedback.pushInfo("join buffer id to centroid")
         
         centroid_with_buffer_id = processing.run("native:joinattributesbylocation", {
@@ -371,6 +403,9 @@ class MorphBlocks(QgsProcessingAlgorithm):
         feedback=feedback,
         )["OUTPUT"]
         
+        # Print number of input features
+        feedback.pushInfo(f"Number of features: {len(centroid_with_buffer_id)}")
+        
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
             return
@@ -378,6 +413,7 @@ class MorphBlocks(QgsProcessingAlgorithm):
         # -------------------------------   
         # Join buffer id to origin building footprint - using centroid
         # -------------------------------
+        feedback.pushInfo("-----------------------------------------")
         feedback.pushInfo("join buffer id to origin building footprint")
         
         transformed_with_buffer_id = processing.run("native:joinattributestable", {
@@ -394,6 +430,9 @@ class MorphBlocks(QgsProcessingAlgorithm):
         context=context,
         feedback=feedback,
         )["OUTPUT"]
+        
+        # Print number of input features
+        feedback.pushInfo(f"Number of features: {len(transformed_with_buffer_id)}")
 
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
@@ -402,6 +441,7 @@ class MorphBlocks(QgsProcessingAlgorithm):
         # -------------------------------   
         # Dissolve origin building footprint by buffer id
         # -------------------------------
+        feedback.pushInfo("-----------------------------------------")
         feedback.pushInfo("dissolve origin building footprint by buffer id")
         
         dissolved_2 = processing.run("native:dissolve", {
@@ -414,6 +454,9 @@ class MorphBlocks(QgsProcessingAlgorithm):
         feedback=feedback,
         )["OUTPUT"]
         
+        # Print number of input features
+        feedback.pushInfo(f"Number of features: {len(dissolved_2)}")
+        
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
             return
@@ -421,6 +464,7 @@ class MorphBlocks(QgsProcessingAlgorithm):
         # -------------------------------   
         # Add column "holes_count" with number of inner holes
         # -------------------------------
+        feedback.pushInfo("-----------------------------------------")
         feedback.pushInfo("add column holes_count")
         
         dissolved_3 = processing.run("native:addfieldtoattributestable", {
@@ -437,6 +481,9 @@ class MorphBlocks(QgsProcessingAlgorithm):
         feedback=feedback,
         )["OUTPUT"]
         
+        # Print number of input features
+        feedback.pushInfo(f"Number of features: {len(dissolved_3)}")
+        
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
             return
@@ -444,6 +491,7 @@ class MorphBlocks(QgsProcessingAlgorithm):
         # -------------------------------   
         # Add column "holes_total_area" with total area of inner holes
         # -------------------------------
+        feedback.pushInfo("-----------------------------------------")
         feedback.pushInfo("add column holes_total_area")
         dissolved_4 = processing.run("native:addfieldtoattributestable", {
             'INPUT':dissolved_3, 
@@ -459,24 +507,36 @@ class MorphBlocks(QgsProcessingAlgorithm):
         feedback=feedback,
         )["OUTPUT"]
         
+        # Print number of input features
+        feedback.pushInfo(f"Number of features: {len(dissolved_4)}")
+        
         if feedback.isCanceled():
             feedback.pushInfo("Script was canceled.")
             return
+            
+        # -------------------------------
+        # load result into output Feature Sink
+        # -------------------------------
+        
         # Compute the number of steps to display within the progress bar and
         # get features from source
         #total = 100.0 / source.featureCount() if source.featureCount() else 0
-        #features = source.getFeatures()
+        features_output = dissolved_4.getFeatures()
 
-        #for current, feature in enumerate(features):
+        counter_features_output = 0
+        for current, feature in enumerate(features_output):
             # Stop the algorithm if cancel button has been clicked
         #    if feedback.isCanceled():
         #        break
 
+            counter_features_output += counter_features_output
             # Add a feature in the sink
-        #    sink.addFeature(feature, QgsFeatureSink.Flag.FastInsert)
+            sink.addFeature(feature, QgsFeatureSink.Flag.FastInsert)
 
             # Update the progress bar
         #    feedback.setProgress(int(current * total))
+        feedback.pushInfo(f"Number of processed blocks: {counter_features_output}")
+
 
         # To run another Processing algorithm as part of this algorithm, you can use
         # processing.run(...). Make sure you pass the current context and feedback
