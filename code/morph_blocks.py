@@ -538,34 +538,14 @@ class MorphBlocks(QgsProcessingAlgorithm):
         feedback.pushInfo(f"Number of processed blocks: {counter_features_output}")
 
 
-        # To run another Processing algorithm as part of this algorithm, you can use
-        # processing.run(...). Make sure you pass the current context and feedback
-        # to processing.run to ensure that all temporary layer outputs are available
-        # to the executed algorithm, and that the executed algorithm can send feedback
-        # reports to the user (and correctly handle cancellation and progress reports!)
-        #if False:
-        #    buffered_layer = processing.run(
-        #        "native:buffer",
-        #        {
-        #            "INPUT": dest_id,
-        #            "DISTANCE": 1.5,
-        #            "SEGMENTS": 5,
-        #            "END_CAP_STYLE": 0,
-        #            "JOIN_STYLE": 0,
-        #            "MITER_LIMIT": 2,
-        #            "DISSOLVE": False,
-        #            "OUTPUT": "memory:",
-        #        },
-        #        context=context,
-        #        feedback=feedback,
-        #    )["OUTPUT"]
-
         # Return the results of the algorithm. In this case our only result is
         # the feature sink which contains the processed features, but some
         # algorithms may return multiple feature sinks, calculated numeric
         # statistics, etc. These should all be included in the returned
         # dictionary, with keys matching the feature corresponding parameter
         # or output names.
+        
+        # Return OUTPUT dataset + intermediate dataset: buffer and centroids (both optional)
         return {self.OUTPUT: dest_id, 
                 self.OUTPUT_BUFFER: buffer_id, 
                 self.OUTPUT_CENTROIDS: centroids_id}
