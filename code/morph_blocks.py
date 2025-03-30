@@ -129,15 +129,21 @@ class MorphBlocks(QgsProcessingAlgorithm):
         # usually takes the form of a newly created vector layer when the
         # algorithm is run in QGIS).
         self.addParameter(
-            QgsProcessingParameterFeatureSink(self.OUTPUT, "Output block layer")
+            QgsProcessingParameterFeatureSink(self.OUTPUT,
+                                            "Output block layer")
         )
 
         self.addParameter(
-            QgsProcessingParameterFeatureSink(self.OUTPUT_CENTROIDS, "Output centroid layer", optional=True)
+            QgsProcessingParameterFeatureSink(self.OUTPUT_CENTROIDS, 
+                                            "Output centroid layer", 
+                                            type=QgsProcessing.TypeVectorPoint, 
+                                            optional=True)
         )
         
         self.addParameter(
-            QgsProcessingParameterFeatureSink(self.OUTPUT_BUFFER, "Output buffer layer", optional=True)
+            QgsProcessingParameterFeatureSink(self.OUTPUT_BUFFER, 
+                                            "Output buffer layer", 
+                                            optional=True)
         )
     def processAlgorithm(
         self,
@@ -518,26 +524,39 @@ class MorphBlocks(QgsProcessingAlgorithm):
         # load result into output Feature Sink
         # -------------------------------
         
-        # Compute the number of steps to display within the progress bar and
-        # get features from source
-        #total = 100.0 / source.featureCount() if source.featureCount() else 0
         features_output = dissolved_4.getFeatures()
 
-        counter_features_output = 0
         for current, feature in enumerate(features_output):
-            # Stop the algorithm if cancel button has been clicked
-        #    if feedback.isCanceled():
-        #        break
-
-            counter_features_output += counter_features_output
             # Add a feature in the sink
             sink.addFeature(feature, QgsFeatureSink.Flag.FastInsert)
 
-            # Update the progress bar
-        #    feedback.setProgress(int(current * total))
-        feedback.pushInfo(f"Number of processed blocks: {counter_features_output}")
+        feedback.pushInfo(f"Number of processed blocks: {len(dissolved_4)}")
 
+        # -------------------------------
+        # load result into output BUFFER Feature Sink
+        # -------------------------------
+        
+        features_output_buffer = buffer_2.getFeatures()
 
+        for current, feature in enumerate(features_output_buffer):
+            # Add a feature in the sink
+            sink_buffer.addFeature(feature, QgsFeatureSink.Flag.FastInsert)
+
+        feedback.pushInfo(f"Number of processed buffers: {len(dissolved_4)}")        
+        
+        # -------------------------------
+        # load result into output CENTROIDS Feature Sink
+        # -------------------------------
+        
+        features_output_centroids = centroid_with_buffer_id.getFeatures()
+
+        for current, feature in enumerate(features_output_centroids):
+            # Add a feature in the sink
+            sink_centroids.addFeature(feature, QgsFeatureSink.Flag.FastInsert)
+
+        feedback.pushInfo(f"Number of processed centroids: {len(centroid_with_buffer_id)}")        
+        
+        
         # Return the results of the algorithm. In this case our only result is
         # the feature sink which contains the processed features, but some
         # algorithms may return multiple feature sinks, calculated numeric
