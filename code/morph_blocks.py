@@ -293,7 +293,7 @@ class MorphBlocks(QgsProcessingAlgorithm):
         dissolved_1 = processing.run("native:dissolve", {
             'INPUT':transformed,
             'FIELD':[],
-            'SEPARATE_DISJOINT':False,
+            'SEPARATE_DISJOINT':True,
             'OUTPUT':'TEMPORARY_OUTPUT'
         },
         context=context,
@@ -447,7 +447,7 @@ class MorphBlocks(QgsProcessingAlgorithm):
         dissolved_2 = processing.run("native:dissolve", {
             'INPUT':transformed_with_buffer_id,
             'FIELD':['buffer_fid'],
-            'SEPARATE_DISJOINT':False,
+            'SEPARATE_DISJOINT':True,
             'OUTPUT':'TEMPORARY_OUTPUT'
         },
         context=context,
