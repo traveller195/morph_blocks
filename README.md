@@ -19,7 +19,12 @@ Create a cityblock based on historical building footprint dataset using morph to
 ## dataset
 - **GIS Dataset Nürnberg War Damage Maps WWII** https://fd-repo.uni-bamberg.de/records/he14f-xh380
 
-## tutorial
+## tutorials
 - https://www.qgistutorials.com/de/docs/3/processing_python_plugin.html
 - compare source code of existing QGIS processing plugins: https://github.com/qgis/QGIS/tree/master/python/plugins/processing
 - compare official code template for QGIS processing plugins: https://github.com/qgis/QGIS/blob/master/python/plugins/processing/script/ScriptTemplate.py
+
+## best practise
+- in each Python tool --> got to "advanced" in bottem left corner --> copy as Python code
+- Plugin Builder
+- Plugin Reloader
